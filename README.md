@@ -61,8 +61,8 @@ The optimization co-design process discovers a set of Pareto-optimal trade-offs.
 ### 1. Clone & install
 
 ```bash
-git clone https://github.com/SilvaItalo/opt_wind_farm_simulator.git
-cd opt_wind_farm_simulator
+git clone https://github.com/ITA-LOW/wind_farm_simulator.git
+cd wind_farm_simulator
 pip install -r requirements.txt
 ```
 
