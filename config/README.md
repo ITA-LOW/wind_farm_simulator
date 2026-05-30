@@ -38,8 +38,7 @@ Speeds   : 9.8 m/s (uniform across bins, IEA37 standard)
 
 ## Wake Model
 
-The `iea37_aepcalc.py` implements the **simplified Bastankhah Gaussian wake model**
-as defined in the IEA Task 37 combined case study:
+The `iea37_aepcalc.py` implements the **simplified Bastankhah Gaussian wake model**:
 
 $$\sigma(x) = k \cdot x + \frac{D}{\sqrt{8}}$$
 
