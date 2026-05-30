@@ -1,4 +1,4 @@
-# Custom Case Configuration
+# `cases/` —  Custom Case Configuration
 
 This directory contains the simulation configurations for wind farms in YAML format. You can define your own simulation setups by creating a new `.yaml` file in this directory.
 

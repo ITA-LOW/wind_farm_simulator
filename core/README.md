@@ -1,6 +1,6 @@
-# `core/` — Physics & Optimisation Engine
+# `core/` — Physics & Optimization Engine
 
-The three modules here form the computational backbone of opt_wind_farm_simulator.
+The three modules here form the computational backbone of the wind farm simulator.
 
 ---
 

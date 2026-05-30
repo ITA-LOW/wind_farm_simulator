@@ -45,7 +45,7 @@ $$\sigma(x) = k \cdot x + \frac{D}{\sqrt{8}}$$
 
 $$\frac{\Delta U}{U} = \left(1 - \sqrt{1 - \frac{C_T}{8 \sigma(x)^2 / D^2}}\right) \cdot \exp\left(-\frac{y^2}{2\sigma(x)^2}\right)$$
 
-Multiple upstream wakes are combined using **quadratic superposition** (Katic):
+Multiple upstream wakes are combined using \textbf{quadratic superposition} (Katic):
 
 $$\text{total\_deficit} = \sqrt{\sum_{i} \text{deficit}_i^2}$$
 
