@@ -39,13 +39,15 @@ Speeds   : 9.8 m/s (uniform across bins, IEA37 standard)
 ## Wake Model
 
 The `iea37_aepcalc.py` implements the **simplified Bastankhah Gaussian wake model**
-as defined in the IEA Task 37 combined case study and multiple upstream wakes are combined using **quadratic superposition** (Katic):
+as defined in the IEA Task 37 combined case study:
 
 $$\sigma(x) = k \cdot x + \frac{D}{\sqrt{8}}$$
 
 $$\frac{\Delta U}{U} = \left(1 - \sqrt{1 - \frac{C_T}{8 \sigma(x)^2 / D^2}}\right) \cdot \exp\left(-\frac{y^2}{2\sigma(x)^2}\right)$$
 
-$$\text{total\_deficit} = \sqrt{\sum_{i} \text{deficit}_i^2}$$
+Multiple upstream wakes are combined using **quadratic superposition** (Katic):
+
+$$total_{deficit} = \sqrt{\sum_{i} \text{deficit}_i^2}$$
 
 ## Customizing Inputs & Data
 
