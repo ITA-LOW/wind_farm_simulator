@@ -13,14 +13,14 @@ initial_layout_yaml: "config/iea37-ex16.yaml"  # Standard starting layout
 population_size: 300
 crossover_probability: 0.95
 mutation_probability: 0.7
-mutation_sigma: 100.0
+mutation_sigma: 100
 mu: 0.0
 mutation_indpb: 0.4
 tournament_size: 5
 alpha: 0.5
 
 # Plateau convergence criteria
-plateau_generations_p1: 100   # Phase 1 plateau generations
+plateau_generations_p1: 200   # Phase 1 plateau generations
 plateau_generations_p2: 200  # Phase 2 plateau generations
 
 # Substation: "optimize" to co-optimize position, or a [X, Y] coordinate list to keep it fixed
