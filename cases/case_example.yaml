@@ -1,0 +1,33 @@
+# Simulation configuration
+name: "My wind farm simulation"
+n_turbines: 16
+boundary_radius: 1300.0
+min_spacing_multiplier: 2.0  # 2 * rotor_diameter
+
+# Input files (relative to repository root)
+turbine_yaml: "config/iea37-335mw.yaml"
+windrose_yaml: "config/iea37-windrose.yaml"
+initial_layout_yaml: "config/iea37-ex16.yaml"  # Standard starting layout
+
+# Genetic Algorithm parameters
+population_size: 300
+crossover_probability: 0.95
+mutation_probability: 0.7
+mutation_sigma: 100.0
+mu: 0.0
+mutation_indpb: 0.4
+tournament_size: 5
+alpha: 0.5
+
+# Plateau convergence criteria
+plateau_generations_p1: 100   # Phase 1 plateau generations
+plateau_generations_p2: 200  # Phase 2 plateau generations
+
+# Substation: "optimize" to co-optimize position, or a [X, Y] coordinate list to keep it fixed
+substation: "optimize"
+
+# Cable groups (number of independent strings in SAP)
+cable_groups:
+  min_groups: 2
+  max_groups: 7
+

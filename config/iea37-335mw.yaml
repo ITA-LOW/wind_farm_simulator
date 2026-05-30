@@ -1,0 +1,20 @@
+# Turbine specs
+definitions:
+  wind_turbine_lookup:
+    properties:
+      power:
+        maximum: 3350000.0  # Rated electrical power in Watts (3.35 MW)
+
+  rotor:
+    properties:
+      radius:
+        default: 65.0       # Rotor radius in meters (Rotor Diameter = 130m)
+
+  operating_mode:
+    properties:
+      cut_in_wind_speed:
+        default: 4.0        # Cut-in wind speed in m/s
+      cut_out_wind_speed:
+        default: 25.0       # Cut-out wind speed in m/s
+      rated_wind_speed:
+        default: 9.8        # Rated wind speed in m/s
