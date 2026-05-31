@@ -100,7 +100,7 @@ results/user_run/
 You can run your own custom co-design optimization by configuring a YAML file inside the `cases/` directory and executing the interactive `orchestrator.py` runner. 
 
 The optimizer will automatically run:
-1. **Phase 1 (Layout-only)**: Optimizes turbine locations for maximum AEP. Stops automatically when a performance plateau is detected (no improvement at all over 50 generations, up to a limit of 1000 generations).
+1. **Phase 1 (Layout-only)**: Optimizes turbine locations for maximum AEP. Stops automatically when a performance plateau is detected.
 2. **Phase 2 (Co-design)**: Expands the genome to optimize turbine locations, substation position, and cable grouping. Stops when the objectives on the Pareto front converge.
 3. **Visualization & Plotting**: Generates real evolution GIFs (`phase1_evolution.gif` and `phase2_cabling.gif`) and a static `aep_evolution.png` plot showing the exact AEP trajectory and phase transition.
 
