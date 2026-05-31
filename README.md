@@ -62,8 +62,6 @@ The framework natively supports **forbidden zones** (holes inside the GeoJSON po
 
 </div>
 
-> **Generate these figures yourself:** `python orchestrator.py --case cases/case_example.yaml --output results/user_run --max-gens 200`
-
 ---
 
 ## Quick Start
