@@ -54,6 +54,15 @@ The framework natively supports **forbidden zones** (holes inside the GeoJSON po
 | ![Island Layout](results/island_test/evolution_layout.gif) | ![Island AEP](results/island_test/aep_evolution.gif) |
 | Turbines and cables naturally evolve to strictly circumvent the forbidden central island. | The GA learns to navigate the massive geometric obstacle penalties, restoring positive Net AEP safely. |
 
+### Dynamic Site-Specific Wind Rose & Diagnostics (ERA5 API)
+
+The framework is truly site-agnostic. By setting `windrose_yaml: "auto"` in the configuration, the orchestrator automatically fetches the latest 2 years of hourly meteorological wind data (ERA5) from the Open-Meteo API using the WGS84 centroid of your GeoJSON polygon. It extrapolates the wind speed to the turbine's exact `hub_height` using the Power Law, computes the directional frequency bins, and generates an automated site suitability diagnostic (`wind_diagnostic.json`).
+
+| Site Boundary (GeoJSON) | Dynamic Site-Specific Wind Rose |
+|:---:|:---:|
+| ![Site Boundary](img/site-specs.png) | ![Wind Rose](img/wr-site-specs.png) |
+| *Arbitrary polygonal boundaries and islands drawn in GeoJSON.* | *Automated polar plot of the local wind resources extrapolated to hub height.* |
+
 ### Final Pareto Front (Knee Point)
 
 ![Pareto Front](results/user_run/pareto_front.png)
@@ -86,6 +95,8 @@ This runs the optimization on the default case config (`cases/case_example.yaml`
 results/user_run/
 ├── convergence_history.json # JSON array logging metrics (Net AEP, CAPEX) per generation
 ├── pareto_solutions.json    # JSON containing coordinates, parameters, and metrics for all optimal Pareto layouts
+├── wind_diagnostic.json     # Automated site-suitability diagnostics and wind analysis
+├── auto_wind_rose.png       # Polar plot of the site-specific wind resources
 ├── aep_evolution.png        # Trajectory of AEP/CAPEX metrics
 ├── pareto_front.png         # Final Pareto front (AEP vs CAPEX)
 ├── knee_layout.png          # Optimal layout of turbines and cables at the Knee Point
@@ -139,7 +150,8 @@ wind_farm_simulator/
 │   ├── phase_1.py          # GA Layout Optimization
 │   ├── phase_2.py          # NSGA-II Co-design Optimization
 │   ├── plot.py             # Publication-quality plotting utilities
-│   └── wfwe.py             # WindFarm visualisations and field rendering
+│   ├── wfwe.py             # WindFarm visualisations and field rendering
+│   └── wind_rose.py        # ERA5 Meteorological API integration and diagnostics
 │
 ├── optimizer/              # NSGA-II multi-objective optimizer & benchmarks
 │   ├── benchmark.py        # GECCO benchmark comparison script

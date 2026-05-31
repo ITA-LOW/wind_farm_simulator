@@ -48,7 +48,7 @@ def repair_spacing(coords, min_spacing, boundary, max_iterations=10):
     return coords
 
 class Phase2Optimizer:
-    def __init__(self, config, best_p1_coords, pop_p1, max_gens=1000):
+    def __init__(self, config, best_p1_coords, pop_p1, max_gens=1000, wind_rose_data=None):
         self.config = config
         self.best_p1_coords = best_p1_coords
         self.pop_p1 = pop_p1
@@ -56,12 +56,16 @@ class Phase2Optimizer:
         
         # Load paths from config (relative to ROOT)
         turb_yaml = os.path.join(ROOT, self.config["turbine_yaml"])
-        wind_yaml = os.path.join(ROOT, self.config["windrose_yaml"])
         geojson_path = os.path.join(ROOT, self.config["boundary_geojson"])
 
         # Pre-load data
         self.turb_ci, self.turb_co, self.rated_ws, self.rated_pwr, self.turb_diam = getTurbAtrbtYAML(turb_yaml)
-        self.wind_dir, self.wind_freq, self.wind_speed = getWindRoseYAML(wind_yaml)
+        
+        if wind_rose_data is not None:
+            self.wind_dir, self.wind_freq, self.wind_speed = wind_rose_data
+        else:
+            wind_yaml = os.path.join(ROOT, self.config["windrose_yaml"])
+            self.wind_dir, self.wind_freq, self.wind_speed = getWindRoseYAML(wind_yaml)
         self.boundary = SiteBoundary.from_geojson(geojson_path)
 
         # Geometry & Substation
@@ -352,6 +356,6 @@ class Phase2Optimizer:
         
         return hof, p2_frames, history_net_best, history_capex_best
 
-def run_phase_2(config, best_p1_coords, pop_p1, max_gens=1000):
-    optimizer = Phase2Optimizer(config, best_p1_coords, pop_p1, max_gens)
+def run_phase_2(config, best_p1_coords, pop_p1, max_gens=1000, wind_rose_data=None):
+    optimizer = Phase2Optimizer(config, best_p1_coords, pop_p1, max_gens, wind_rose_data=wind_rose_data)
     return optimizer.run()

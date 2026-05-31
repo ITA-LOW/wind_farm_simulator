@@ -16,7 +16,10 @@ min_spacing_multiplier: 3.0                   # Min turbine spacing as factor of
 
 # Input files (paths relative to repository root)
 turbine_yaml: "config/turbines/iea37-335mw.yaml"   # Turbine specifications YAML path
-windrose_yaml: "config/windrose/iea37-windrose.yaml" # Wind rose resource YAML path
+# Wind rose options:
+# - "auto" : Automatically fetches 2 years of ERA5 satellite data for the site's coordinates
+# - "config/windrose/my_wind.yaml" : Path to a custom YAML for benchmarking or anemometer data
+windrose_yaml: "auto"
 boundary_geojson: "config/boundaries/site_boundary.geojson" # Site polygonal boundary
 
 # Genetic Algorithm parameters

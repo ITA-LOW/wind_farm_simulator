@@ -3,7 +3,8 @@ n_turbines: 36
 min_spacing_multiplier: 2.0
 
 turbine_yaml: "config/turbines/iea37-335mw.yaml"
-windrose_yaml: "config/windrose/iea37-windrose.yaml"
+windrose_yaml: "auto"
+# windrose_yaml: "config/windrose/iea37-windrose.yaml" # uncomment to use fixed wind rose (comment previous line)
 boundary_geojson: "config/boundaries/island_test.geojson"
 
 population_size: 50

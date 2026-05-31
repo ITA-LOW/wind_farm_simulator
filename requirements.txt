@@ -8,3 +8,4 @@ pandas>=2.0
 moocore
 shapely>=2.0
 pyproj>=3.5
+requests>=2.28

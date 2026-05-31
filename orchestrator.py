@@ -128,25 +128,66 @@ if __name__ == "__main__":
     print(f"Output Dir  : {args.output}")
     print(f"Max Gens    : {args.max_gens} per phase")
     
+    # ── 0. Pre-load Global Data (Wind & Turbines) ───────────────────────────────
+    turb_yaml = os.path.join(ROOT, config.get("turbine_yaml", "config/iea37-335mw.yaml"))
+    geojson_path = os.path.join(ROOT, config["boundary_geojson"])
+    
+    turb_atrbt_data = getTurbAtrbtYAML(turb_yaml)
+    boundary = SiteBoundary.from_geojson(geojson_path)
+    
+    wind_config = config.get("windrose_yaml", "config/iea37-windrose.yaml")
+    if wind_config == "auto":
+        from core.wind_rose import get_automatic_wind_rose
+        from core.plot import plot_wind_rose
+        from shapely.geometry import shape
+        from core.boundary import _extract_geometries
+        
+        banner("Generating Auto-Wind Rose (ERA5 API)")
+        # Get lat/lon from raw GeoJSON (WGS84)
+        with open(geojson_path, "r") as f:
+            gj = json.load(f)
+        geoms = _extract_geometries(gj)
+        # Use largest polygon for centroid
+        shapes = [shape(g) for g in geoms if g is not None]
+        polys = [s for s in shapes if s.geom_type in ["Polygon", "MultiPolygon"]]
+        polys.sort(key=lambda p: p.area, reverse=True)
+        lon, lat = polys[0].centroid.x, polys[0].centroid.y
+        
+        # Get hub height
+        with open(turb_yaml, "r") as f:
+            tdata = yaml.safe_load(f)
+        try:
+            hub_height = float(tdata['definitions']['rotor']['properties']['hub_height']['default'])
+        except KeyError:
+            hub_height = 110.0
+            
+        turb_ci, turb_co, rated_ws, rated_pwr, turb_diam = turb_atrbt_data
+        wind_dir, wind_freq, wind_speed, diagnostic = get_automatic_wind_rose(
+            lat, lon, hub_height, turb_ci, turb_co, rated_ws
+        )
+        wind_rose_data = (wind_dir, wind_freq, wind_speed)
+        
+        # Save diagnostic json
+        with open(os.path.join(args.output, "wind_diagnostic.json"), "w") as f:
+            json.dump(diagnostic, f, indent=4)
+        
+        # Save plot
+        plot_path = os.path.join(args.output, "auto_wind_rose.png")
+        plot_wind_rose(wind_dir, wind_freq, wind_speed, plot_path)
+    else:
+        wind_yaml = os.path.join(ROOT, wind_config)
+        wind_rose_data = getWindRoseYAML(wind_yaml)
+    
     # ── 1. Run Phase 1 ──────────────────────────────────────────────────────────
     banner("Executing PHASE 1: Layout Optimization")
-    best_p1_coords, h_p1_aep, pop_p1, log_p1, p1_frames = run_phase_1(config, max_gens=args.max_gens)
+    best_p1_coords, h_p1_aep, pop_p1, log_p1, p1_frames = run_phase_1(config, max_gens=args.max_gens, wind_rose_data=wind_rose_data)
     
     # ── 2. Run Phase 2 ──────────────────────────────────────────────────────────
     banner("Executing PHASE 2: Co-design & Cabling")
-    hof_p2, p2_frames, h_p2_net, h_p2_capex = run_phase_2(config, best_p1_coords, pop_p1, max_gens=args.max_gens)
+    hof_p2, p2_frames, h_p2_net, h_p2_capex = run_phase_2(config, best_p1_coords, pop_p1, max_gens=args.max_gens, wind_rose_data=wind_rose_data)
     
     # ── 3. Render Outputs ───────────────────────────────────────────────────────
     banner("Rendering Outputs and GIFs")
-    
-    # Load required data for plotting
-    turb_yaml = os.path.join(ROOT, config.get("turbine_yaml", "config/iea37-335mw.yaml"))
-    wind_yaml = os.path.join(ROOT, config.get("windrose_yaml", "config/iea37-windrose.yaml"))
-    geojson_path = os.path.join(ROOT, config["boundary_geojson"])
-
-    turb_atrbt_data = getTurbAtrbtYAML(turb_yaml)
-    wind_rose_data = getWindRoseYAML(wind_yaml)
-    boundary = SiteBoundary.from_geojson(geojson_path)
 
 
     generate_evolution_gifs(

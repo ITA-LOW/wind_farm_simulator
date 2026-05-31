@@ -66,14 +66,41 @@ class SiteBoundary:
         with open(geojson_path, "r") as f:
             data = json.load(f)
 
-        geom_data = _extract_geometry(data)
-        polygon_lonlat = shape(geom_data)
+        geom_dicts = _extract_geometries(data)
+        shapes = [shape(g) for g in geom_dicts if g is not None]
+        
+        polygons = []
+        for s in shapes:
+            if s.geom_type == "Polygon":
+                polygons.append(s)
+            elif s.geom_type == "MultiPolygon":
+                polygons.extend(list(s.geoms))
+                
+        if not polygons:
+            raise ValueError(
+                "No Polygon geometries found in the GeoJSON. "
+                "Draw at least one polygon in geojson.io."
+            )
 
+        # To handle multiple polygons (e.g. drawn islands):
+        # We assume the polygon with the largest area is the site boundary,
+        # and any other polygons are holes (forbidden zones) to be subtracted.
+        polygons.sort(key=lambda p: p.area, reverse=True)
+        polygon_lonlat = polygons[0]
+        
+        for hole in polygons[1:]:
+            polygon_lonlat = polygon_lonlat.difference(hole)
+
+        if polygon_lonlat.geom_type == "MultiPolygon":
+            # Just take the largest part if difference splits the geometry
+            parts = list(polygon_lonlat.geoms)
+            parts.sort(key=lambda p: p.area, reverse=True)
+            polygon_lonlat = parts[0]
+            
         if polygon_lonlat.geom_type != "Polygon":
             raise ValueError(
-                f"GeoJSON geometry must be a Polygon, got "
-                f"'{polygon_lonlat.geom_type}'. "
-                "Draw a single polygon (with optional holes) in geojson.io."
+                f"Resulting geometry must be a Polygon, got "
+                f"'{polygon_lonlat.geom_type}'."
             )
 
         # Azimuthal Equidistant projection centred at the polygon centroid.
@@ -169,22 +196,17 @@ class SiteBoundary:
 # Internal helper
 # ----------------------------------------------------------------------
 
-def _extract_geometry(data):
+def _extract_geometries(data):
     """
-    Extract the geometry dict from any valid GeoJSON top-level structure.
+    Extract a list of geometry dicts from any valid GeoJSON top-level structure.
     """
     t = data.get("type", "")
     if t == "Feature":
-        return data["geometry"]
+        return [data.get("geometry")]
     elif t == "FeatureCollection":
-        features = data.get("features", [])
-        if len(features) != 1:
-            raise ValueError(
-                f"GeoJSON FeatureCollection must contain exactly 1 feature, "
-                f"found {len(features)}. "
-                "Merge your polygons into a single polygon with holes."
-            )
-        return features[0]["geometry"]
+        return [f.get("geometry") for f in data.get("features", [])]
     else:
         # Raw geometry object
-        return data
+        if t == "GeometryCollection":
+            return data.get("geometries", [])
+        return [data]

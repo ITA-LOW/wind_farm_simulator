@@ -14,18 +14,23 @@ from core.aep import calcAEP, getWindRoseYAML, getTurbAtrbtYAML
 from core.boundary import SiteBoundary
 
 class Phase1Optimizer:
-    def __init__(self, config, max_gens=1000):
+    def __init__(self, config, max_gens=1000, wind_rose_data=None):
         self.config = config
         self.max_gens = max_gens
         
         # Load paths from config (relative to ROOT)
         turb_yaml = os.path.join(ROOT, self.config["turbine_yaml"])
-        wind_yaml = os.path.join(ROOT, self.config["windrose_yaml"])
         geojson_path = os.path.join(ROOT, self.config["boundary_geojson"])
 
         # Pre-load data
         self.turb_atrbt_data = getTurbAtrbtYAML(turb_yaml)
-        self.wind_rose_data = getWindRoseYAML(wind_yaml)
+        
+        if wind_rose_data is not None:
+            self.wind_rose_data = wind_rose_data
+        else:
+            wind_yaml = os.path.join(ROOT, self.config["windrose_yaml"])
+            self.wind_rose_data = getWindRoseYAML(wind_yaml)
+            
         self.boundary = SiteBoundary.from_geojson(geojson_path)
 
         # Extract constants
@@ -249,6 +254,6 @@ class Phase1Optimizer:
         
         return best_coords, history_best, pop, logbook, frames
 
-def run_phase_1(config, max_gens=1000):
-    optimizer = Phase1Optimizer(config, max_gens)
+def run_phase_1(config, max_gens=1000, wind_rose_data=None):
+    optimizer = Phase1Optimizer(config, max_gens, wind_rose_data=wind_rose_data)
     return optimizer.run()

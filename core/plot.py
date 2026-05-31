@@ -417,3 +417,52 @@ def generate_evolution_gifs(p1_frames, p2_frames, h_p1_aep, h_p2_net, h_p2_capex
     png_path_aep = os.path.join(output_dir, "aep_evolution.png")
     frames_aep[-1].save(png_path_aep)
     print(f"Saved: {png_path_aep}")
+
+
+def plot_wind_rose(wind_dir, wind_freq, wind_speed, save_path):
+    """
+    Generate a polar plot of the wind rose and save it.
+    Matches the dark aesthetic of the simulation outputs.
+    """
+    # Create figure with dark background
+    fig = plt.figure(figsize=(8, 8), facecolor='#0f172a')
+    ax = fig.add_subplot(111, polar=True)
+    ax.set_facecolor('#1e293b')
+    
+    # Set polar parameters for meteorological convention
+    # North at top (0 deg), angles increase clockwise
+    ax.set_theta_zero_location("N")
+    ax.set_theta_direction(-1)
+    
+    # Data conversion
+    theta = np.radians(wind_dir)
+    width = np.radians(360.0 / len(wind_dir))
+    
+    # Plot bars (frequency dictates length)
+    bars = ax.bar(theta, wind_freq, width=width, bottom=0.0, 
+                  color='#3b82f6', edgecolor='#60a5fa', alpha=0.8, zorder=3)
+                  
+    # Styling grids and ticks
+    ax.tick_params(colors='#94a3b8')
+    ax.grid(color='#334155', linestyle='--', linewidth=0.5, zorder=0)
+    ax.spines['polar'].set_color('#334155')
+    
+    # Labels
+    ax.set_title("Site-Specific Wind Rose (ERA5 API)", color='white', pad=20, fontsize=14, fontweight='bold')
+    
+    # Custom radial ticks (percentage)
+    max_freq = np.max(wind_freq)
+    if max_freq == 0:
+        max_freq = 1.0 # fallback
+    rticks = np.linspace(0, max_freq, 5)
+    ax.set_rticks(rticks)
+    ax.set_yticklabels([f"{(t*100):.1f}%" for t in rticks], color='#94a3b8', fontsize=9)
+    
+    # Compass labels
+    ax.set_xticks(np.radians([0, 45, 90, 135, 180, 225, 270, 315]))
+    ax.set_xticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'], color='white', fontweight='bold')
+    
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, facecolor=fig.get_facecolor(), bbox_inches='tight')
+    plt.close()
+    print(f"Wind rose plot saved to {save_path}")
