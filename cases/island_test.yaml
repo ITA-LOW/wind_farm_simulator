@@ -1,0 +1,25 @@
+name: "Island Test"
+n_turbines: 36
+min_spacing_multiplier: 2.0
+
+turbine_yaml: "config/turbines/iea37-335mw.yaml"
+windrose_yaml: "config/windrose/iea37-windrose.yaml"
+boundary_geojson: "config/boundaries/island_test.geojson"
+
+population_size: 50
+crossover_probability: 0.95
+mutation_probability: 0.7
+mutation_sigma: 100.0
+mu: 0.0
+mutation_indpb: 0.4
+tournament_size: 5
+alpha: 0.5
+
+plateau_generations_p1: 100
+plateau_generations_p2: 100
+
+substation: "optimize"
+
+cable_groups:
+  min_groups: 2
+  max_groups: 36

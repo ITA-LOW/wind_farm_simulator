@@ -31,11 +31,11 @@ Compares **three methods** over N independent seeds with full statistical rigour
 
 By default, the benchmark is configured to optimize the standard **16-turbine IEA Task 37 case study** with:
 - **Number of Turbines (`IND_SIZE`):** `16`
-- **Initial Layout (`main_yaml_path`):** `"config/iea37-ex16.yaml"`
+- **Initial Layout (`main_yaml_path`):** `"optimizer/data/iea37-ex16.yaml"`
 - **Boundary Radius (`CIRCLE_RADIUS`):** `5000` meters
 - **Minimum Turbine Spacing (`N_DIAMETERS`):** `260` meters (2 * rotor diameter)
 
-To evaluate other benchmark configurations (e.g., 36 or 64 turbines), you must open `optimizer/benchmark.py` and modify these variables at the top of the script (around lines 80-98) to match your target layout coordinates and turbine count.
+To evaluate other benchmark configurations (e.g., 36 or 64 turbines), you must open `optimizer/benchmark.py` and modify these variables at the top of the script (around lines 80-98) to match your target layout coordinates and turbine count. Ensure that the corresponding static layout YAML files exist in `optimizer/data/`.
 
 ### Running
 

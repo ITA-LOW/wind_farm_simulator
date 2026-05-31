@@ -135,9 +135,21 @@ class Phase2Optimizer:
         sub_index = self.n_turb
         
         try:
-            _, res = analisar_layout_completo(combined_coords, sub=sub_index, n_grupos=n_groups)
+            planta, res = analisar_layout_completo(combined_coords, sub=sub_index, n_grupos=n_groups)
             capex = res["custo_total_usd"]
             losses = res["perda_anual_mwh"]
+            
+            # Check for cable intersections with boundaries/holes
+            from shapely.geometry import LineString
+            for path in planta.paths:
+                for i in range(len(path) - 1):
+                    p1 = combined_coords[path[i]]
+                    p2 = combined_coords[path[i+1]]
+                    line = LineString([p1, p2])
+                    # If the cable crosses a hole or goes outside the site, penalize heavily
+                    if not self.boundary._poly.contains(line):
+                        penalty += 1e6
+                        
         except Exception:
             capex = 1e12
             losses = gross_aep
@@ -229,10 +241,7 @@ class Phase2Optimizer:
         fits = tb.map(tb.evaluate, pop_p2)
         for ind, fit in zip(pop_p2, fits):
             ind.fitness.values = fit
-            
-        # Filter valids
-        pop_p2 = [ind for ind in pop_p2 if ind.fitness.values[0] > 0]
-        
+
         hof = tools.ParetoFront()
         hof.update(pop_p2)
         
