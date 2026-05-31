@@ -29,7 +29,8 @@ if ROOT not in sys.path:
 from core.phase_1 import run_phase_1
 from core.phase_2 import run_phase_2
 from core.plot import generate_evolution_gifs, plot_pareto_front
-from config.iea37_aepcalc import getTurbAtrbtYAML, getWindRoseYAML
+from core.boundary import SiteBoundary
+from core.aep import getTurbAtrbtYAML, getWindRoseYAML
 
 def load_config(config_path: str) -> dict:
     with open(config_path, "r") as f:
@@ -141,10 +142,13 @@ if __name__ == "__main__":
     # Load required data for plotting
     turb_yaml = os.path.join(ROOT, config.get("turbine_yaml", "config/iea37-335mw.yaml"))
     wind_yaml = os.path.join(ROOT, config.get("windrose_yaml", "config/iea37-windrose.yaml"))
-    
+    geojson_path = os.path.join(ROOT, config["boundary_geojson"])
+
     turb_atrbt_data = getTurbAtrbtYAML(turb_yaml)
     wind_rose_data = getWindRoseYAML(wind_yaml)
-    
+    boundary = SiteBoundary.from_geojson(geojson_path)
+
+
     generate_evolution_gifs(
         p1_frames=p1_frames,
         p2_frames=p2_frames,
@@ -154,6 +158,7 @@ if __name__ == "__main__":
         config=config,
         turb_atrbt_data=turb_atrbt_data,
         wind_rose_data=wind_rose_data,
+        boundary=boundary,
         output_dir=args.output
     )
     

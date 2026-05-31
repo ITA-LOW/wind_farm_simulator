@@ -10,38 +10,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from config.iea37_aepcalc import calcAEP, getWindRoseYAML, getTurbAtrbtYAML
+from core.aep import calcAEP, getWindRoseYAML, getTurbAtrbtYAML
+from core.boundary import SiteBoundary
 from core.cabling_v3 import analisar_layout_completo
 
-def is_within_circle(x, y, radius):
-    return x**2 + y**2 <= radius**2
-
-def enforce_circle_p1(individual, radius, n_turb):
-    for i in range(n_turb):
-        x, y = individual[2*i], individual[2*i+1]
-        if not is_within_circle(x, y, radius):
-            angle = np.arctan2(y, x)
-            individual[2*i] = radius * np.cos(angle)
-            individual[2*i+1] = radius * np.sin(angle)
-    return individual
-
-def enforce_circle_p2(individual, radius, n_turb, substation_mode):
-    # Enforce turbine boundaries
-    enforce_circle_p1(individual, radius, n_turb)
-    
-    # Enforce substation boundaries if optimizing
-    n_coords = n_turb * 2
-    individual[n_coords] = max(0.0, min(1.0, individual[n_coords]))  # g_norm
-    
-    if substation_mode == "optimize":
-        sub_x, sub_y = individual[n_coords+1], individual[n_coords+2]
-        if not is_within_circle(sub_x, sub_y, radius):
-            angle = np.arctan2(sub_y, sub_x)
-            individual[n_coords+1] = radius * np.cos(angle)
-            individual[n_coords+2] = radius * np.sin(angle)
-    return individual
-
-def repair_spacing(coords, min_spacing, radius, max_iterations=10):
+def repair_spacing(coords, min_spacing, boundary, max_iterations=10):
     """Repels turbines that are too close, keeping them inside the boundary."""
     coords = coords.copy()
     n_turb = len(coords)
@@ -50,10 +23,10 @@ def repair_spacing(coords, min_spacing, radius, max_iterations=10):
         dists = np.linalg.norm(diff, axis=2)
         i_upper, j_upper = np.triu_indices(n_turb, k=1)
         violations = dists[i_upper, j_upper] < min_spacing
-        
+
         if not np.any(violations):
             break
-            
+
         for idx in np.where(violations)[0]:
             i, j = i_upper[idx], j_upper[idx]
             dist_ij = dists[i, j]
@@ -62,16 +35,16 @@ def repair_spacing(coords, min_spacing, radius, max_iterations=10):
                 direction = np.array([np.cos(angle), np.sin(angle)])
             else:
                 direction = (coords[i] - coords[j]) / dist_ij
-                
+
             sep = (min_spacing - dist_ij) / 2.0
             coords[i] += direction * sep
             coords[j] -= direction * sep
-            
-            # Clamp back to boundary circle
+
+            # Clamp back inside polygon boundary
             for k in [i, j]:
-                d = np.linalg.norm(coords[k])
-                if d > radius:
-                    coords[k] = (coords[k] / d) * radius
+                coords[k, 0], coords[k, 1] = boundary.enforce(
+                    coords[k, 0], coords[k, 1]
+                )
     return coords
 
 class Phase2Optimizer:
@@ -84,14 +57,15 @@ class Phase2Optimizer:
         # Load paths from config (relative to ROOT)
         turb_yaml = os.path.join(ROOT, self.config["turbine_yaml"])
         wind_yaml = os.path.join(ROOT, self.config["windrose_yaml"])
-        
+        geojson_path = os.path.join(ROOT, self.config["boundary_geojson"])
+
         # Pre-load data
         self.turb_ci, self.turb_co, self.rated_ws, self.rated_pwr, self.turb_diam = getTurbAtrbtYAML(turb_yaml)
         self.wind_dir, self.wind_freq, self.wind_speed = getWindRoseYAML(wind_yaml)
-        
+        self.boundary = SiteBoundary.from_geojson(geojson_path)
+
         # Geometry & Substation
         self.n_turb = self.config.get("n_turbines", 16)
-        self.radius = float(self.config.get("boundary_radius", 1300.0))
         spacing_mult = self.config.get("min_spacing_multiplier", 2.0)
         self.min_spacing = self.turb_diam * spacing_mult
         
@@ -137,15 +111,18 @@ class Phase2Optimizer:
         i_upper, j_upper = np.triu_indices(self.n_turb, k=1)
         violations = dists[i_upper, j_upper] < self.min_spacing
         penalty += np.sum(np.maximum(0, self.min_spacing - dists[i_upper, j_upper][violations])) * 1e6
-        
-        # 2. Boundary
-        dists_center = np.linalg.norm(turb_coords, axis=1)
-        penalty += np.sum(np.maximum(0, dists_center - self.radius)) * 1e6
-        
-        # 3. Substation
+
+        # 2. Boundary (polygon)
+        outside = np.array([
+            not self.boundary.contains(turb_coords[i, 0], turb_coords[i, 1])
+            for i in range(self.n_turb)
+        ])
+        penalty += np.sum(outside) * 1e6
+
+        # 3. Substation boundary
         if self.sub_mode == "optimize":
-            dist_sub = np.linalg.norm(sub_pos)
-            penalty += np.maximum(0, dist_sub - self.radius) * 1e6
+            if not self.boundary.contains(sub_pos[0], sub_pos[1]):
+                penalty += 1e6
             d_sub_turb = np.linalg.norm(turb_coords - sub_pos, axis=1)
             penalty += np.sum(np.maximum(0, 50.0 - d_sub_turb)) * 1e6
 
@@ -173,21 +150,33 @@ class Phase2Optimizer:
     def _mutate_p2(self, ind):
         n_coords = self.n_turb * 2
         mu_val = self.config.get("mu", 0.0)
-        
+
         for i in range(n_coords):
             if random.random() < self.config.get("mutation_indpb", 0.4):
                 ind[i] += random.gauss(mu_val, self.config.get("mutation_sigma", 100))
-                
+
         if random.random() < self.config.get("mutation_indpb", 0.4):
             ind[n_coords] += random.gauss(mu_val, 0.1)
-            
+
         if self.sub_mode == "optimize":
             if random.random() < self.config.get("mutation_indpb", 0.4):
-                sub_sig = self.radius * 0.4
-                ind[n_coords+1] += random.gauss(mu_val, sub_sig)
-                ind[n_coords+2] += random.gauss(mu_val, sub_sig)
-                
-        enforce_circle_p2(ind, self.radius, self.n_turb, self.sub_mode)
+                xmin, ymin, xmax, ymax = self.boundary.bbox
+                sub_range = max(xmax - xmin, ymax - ymin) * 0.4
+                ind[n_coords+1] += random.gauss(mu_val, sub_range)
+                ind[n_coords+2] += random.gauss(mu_val, sub_range)
+
+        # Enforce polygon boundary for turbines
+        for i in range(self.n_turb):
+            ind[2*i], ind[2*i+1] = self.boundary.enforce(ind[2*i], ind[2*i+1])
+
+        # Clamp g_norm
+        ind[n_coords] = max(0.0, min(1.0, ind[n_coords]))
+
+        # Enforce boundary for substation
+        if self.sub_mode == "optimize":
+            ind[n_coords+1], ind[n_coords+2] = self.boundary.enforce(
+                ind[n_coords+1], ind[n_coords+2]
+            )
         return ind,
 
     def run(self):
@@ -215,10 +204,7 @@ class Phase2Optimizer:
                     centroid = np.mean(np.array(coords).reshape((self.n_turb, 2)), axis=0)
                     sub_x, sub_y = centroid[0], centroid[1]
                 else:
-                    r_sub = self.radius * np.sqrt(random.random())
-                    theta_sub = random.random() * 2 * np.pi
-                    sub_x = r_sub * np.cos(theta_sub)
-                    sub_y = r_sub * np.sin(theta_sub)
+                    sub_x, sub_y = self.boundary.random_point()
             else:
                 sub_x, sub_y = self.sub_fixed_pos[0], self.sub_fixed_pos[1]
             pop_p2.append(creator.IndividualPhase2(coords + [g_norm, sub_x, sub_y]))
@@ -232,10 +218,7 @@ class Phase2Optimizer:
                     centroid = np.mean(np.array(coords).reshape((self.n_turb, 2)), axis=0)
                     sub_x, sub_y = centroid[0], centroid[1]
                 else:
-                    r_sub = self.radius * np.sqrt(random.random())
-                    theta_sub = random.random() * 2 * np.pi
-                    sub_x = r_sub * np.cos(theta_sub)
-                    sub_y = r_sub * np.sin(theta_sub)
+                    sub_x, sub_y = self.boundary.random_point()
             else:
                 sub_x, sub_y = self.sub_fixed_pos[0], self.sub_fixed_pos[1]
             child = creator.IndividualPhase2(coords + [g_norm, sub_x, sub_y])
@@ -261,7 +244,8 @@ class Phase2Optimizer:
         cxpb = self.config.get("crossover_probability", 0.95)
         mutpb = self.config.get("mutation_probability", 0.70)
         pop_size = self.config.get("population_size", 300)
-        
+        n_coords = self.n_turb * 2
+
         gen = 0
         while gen < self.max_gens:
             gen += 1
@@ -281,7 +265,14 @@ class Phase2Optimizer:
             
             # Enforce constraints directly
             for ind in invalid:
-                enforce_circle_p2(ind, self.radius, self.n_turb, self.sub_mode)
+                # Enforce polygon boundary
+                for i in range(self.n_turb):
+                    ind[2*i], ind[2*i+1] = self.boundary.enforce(ind[2*i], ind[2*i+1])
+                ind[n_coords] = max(0.0, min(1.0, ind[n_coords]))
+                if self.sub_mode == "optimize":
+                    ind[n_coords+1], ind[n_coords+2] = self.boundary.enforce(
+                        ind[n_coords+1], ind[n_coords+2]
+                    )
                 
             fits = tb.map(tb.evaluate, invalid)
             for ind, fit in zip(invalid, fits):

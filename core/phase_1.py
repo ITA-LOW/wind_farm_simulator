@@ -10,20 +10,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from config.iea37_aepcalc import calcAEP, getTurbLocYAML, getWindRoseYAML, getTurbAtrbtYAML
-
-def is_within_circle(x, y, radius):
-    return x**2 + y**2 <= radius**2 
-
-def enforce_circle(individual, radius, n_turb):
-    for i in range(n_turb):
-        x, y = individual[2*i], individual[2*i + 1]
-        if not is_within_circle(x, y, radius):
-            # Ajusta a turbina para ficar dentro do círculo
-            angle = np.arctan2(y, x)
-            distance = radius
-            individual[2*i] = distance * np.cos(angle)
-            individual[2*i + 1] = distance * np.sin(angle)
+from core.aep import calcAEP, getWindRoseYAML, getTurbAtrbtYAML
+from core.boundary import SiteBoundary
 
 class Phase1Optimizer:
     def __init__(self, config, max_gens=1000):
@@ -33,17 +21,15 @@ class Phase1Optimizer:
         # Load paths from config (relative to ROOT)
         turb_yaml = os.path.join(ROOT, self.config["turbine_yaml"])
         wind_yaml = os.path.join(ROOT, self.config["windrose_yaml"])
-        layout_yaml = os.path.join(ROOT, self.config["initial_layout_yaml"])
-        
+        geojson_path = os.path.join(ROOT, self.config["boundary_geojson"])
+
         # Pre-load data
-        self.turb_coords_init = getTurbLocYAML(layout_yaml)  # ndarray (N, 2)
         self.turb_atrbt_data = getTurbAtrbtYAML(turb_yaml)
         self.wind_rose_data = getWindRoseYAML(wind_yaml)
-        
+        self.boundary = SiteBoundary.from_geojson(geojson_path)
+
         # Extract constants
-        self.n_turb = len(self.turb_coords_init)
-        self.radius = float(self.config.get("boundary_radius", 1300.0))
-        
+        self.n_turb = int(self.config["n_turbines"])
         turb_diam = self.turb_atrbt_data[4]
         spacing_mult = self.config.get("min_spacing_multiplier", 2.0)
         self.min_spacing = turb_diam * spacing_mult
@@ -63,12 +49,15 @@ class Phase1Optimizer:
         # Converte o indivíduo para coordenadas de turbinas
         turb_coords = np.array(individual).reshape((self.n_turb, 2))
         
-        penalty_out_of_circle = 0
+        penalty_outside = 0
         penalty_close_turbines = 0
 
-        # Penaliza turbinas fora do círculo
-        mask_inside = is_within_circle(turb_coords[:, 0], turb_coords[:, 1], self.radius)
-        penalty_out_of_circle = np.sum(~mask_inside) * 1e6
+        # Penaliza turbinas fora da fronteira poligonal
+        mask_inside = np.array([
+            self.boundary.contains(turb_coords[i, 0], turb_coords[i, 1])
+            for i in range(self.n_turb)
+        ])
+        penalty_outside = np.sum(~mask_inside) * 1e6
 
         # Penaliza turbinas muito próximas: vetorize o cálculo das distâncias
         if self.n_turb > 1:
@@ -82,18 +71,59 @@ class Phase1Optimizer:
         aep = calcAEP(turb_coords, wind_freq, wind_speed, wind_dir,
                       turb_diam, turb_ci, turb_co, rated_ws, rated_pwr)
         
-        fitness = np.sum(aep) - penalty_out_of_circle - penalty_close_turbines
+        fitness = np.sum(aep) - penalty_outside - penalty_close_turbines
         return fitness,
 
     def _mutate(self, individual, mu, sigma, indpb):
-        # Mutação exata do campeao_16.py
         if random.random() < indpb:
             for i in range(len(individual)):
                 individual[i] += random.gauss(mu, sigma)
-            # Garantir que a turbina permaneça dentro do círculo após mutação
-            enforce_circle(individual, self.radius, self.n_turb)
+            # Enforce boundary for each turbine
+            for i in range(self.n_turb):
+                x, y = individual[2*i], individual[2*i + 1]
+                individual[2*i], individual[2*i + 1] = self.boundary.enforce(x, y)
         return individual, 
         
+    def _generate_grid_layout(self):
+        """Generates a regular grid layout of n_turbines inside the polygon."""
+        xmin, ymin, xmax, ymax = self.boundary.bbox
+        max_dim = max(xmax - xmin, ymax - ymin)
+        spacing = max_dim
+        
+        best_points = []
+        step = max_dim / 2.0
+        
+        # Binary search for the perfect grid spacing
+        for _ in range(50):
+            xs = np.arange(xmin + spacing/2, xmax, spacing)
+            ys = np.arange(ymin + spacing/2, ymax, spacing)
+            
+            valid_points = []
+            for x in xs:
+                for y in ys:
+                    if self.boundary.contains(x, y):
+                        valid_points.append((x, y))
+                        
+            if len(valid_points) >= self.n_turb:
+                best_points = valid_points
+                spacing += step # Try a larger spacing to spread them out more
+            else:
+                spacing -= step # Try a smaller spacing to fit more points
+            step /= 2.0
+            
+        if len(best_points) >= self.n_turb:
+            # Sort by distance to center to keep the layout compact and deterministic
+            cx = (xmin + xmax) / 2.0
+            cy = (ymin + ymax) / 2.0
+            best_points.sort(key=lambda p: (p[0]-cx)**2 + (p[1]-cy)**2)
+            
+            coords = []
+            for p in best_points[:self.n_turb]:
+                coords.extend([p[0], p[1]])
+            return coords
+        else:
+            raise ValueError(f"Could not fit {self.n_turb} turbines in the provided polygon. The area might be too small or the number of turbines too large.")
+
     def _create_individual(self, coords):
         return creator.IndividualP1(np.array(coords).flatten().tolist())
 
@@ -102,8 +132,11 @@ class Phase1Optimizer:
         pool = multiprocessing.Pool()
         tb.register("map", pool.map)
         
-        # Setup population exactly like campeao_16.py
-        tb.register("individual", self._create_individual, coords=self.turb_coords_init)
+        # Generate the single well-spread seed layout
+        seed_coords = self._generate_grid_layout()
+        
+        # Setup population starting entirely from this homogenous seed
+        tb.register("individual", self._create_individual, coords=seed_coords)
         tb.register("population", tools.initRepeat, list, tb.individual)
         
         tb.register("evaluate", self._evaluate_otimizado)

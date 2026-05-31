@@ -60,7 +60,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from config.iea37_aepcalc import calcAEP, getTurbLocYAML, getWindRoseYAML, getTurbAtrbtYAML
+from core.aep import calcAEP, getTurbLocYAML, getWindRoseYAML, getTurbAtrbtYAML
 import core.cabling_v3 as cabling_v3
 
 # =============================================================================
@@ -89,11 +89,11 @@ N_GRUPOS_INICIAL = MIN_GRUPOS
 
 # Pre-load benchmark data (avoids repeated I/O inside the eval loop)
 BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-config_dir  = "config"
-main_yaml_path = os.path.join(BASE_DIR, config_dir, "iea37-ex16.yaml")
+data_dir    = os.path.join(BASE_DIR, "optimizer", "data")
+main_yaml_path = os.path.join(data_dir, "iea37-ex16.yaml") # or 36 or 64
 initial_coordinates = getTurbLocYAML(main_yaml_path)
-full_path_turb = os.path.join(BASE_DIR, config_dir, "iea37-335mw.yaml")
-full_path_wr   = os.path.join(BASE_DIR, config_dir, "iea37-windrose.yaml")
+full_path_turb = os.path.join(BASE_DIR, "config", "turbines", "iea37-335mw.yaml")
+full_path_wr   = os.path.join(BASE_DIR, "config", "windrose", "iea37-windrose.yaml")
 TURB_ATRBT_DATA = getTurbAtrbtYAML(full_path_turb)
 WIND_ROSE_DATA  = getWindRoseYAML(full_path_wr)
 

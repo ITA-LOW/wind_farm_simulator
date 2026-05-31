@@ -5,3 +5,6 @@ deap>=1.4
 PyYAML>=6.0
 pillow>=10.0
 pandas>=2.0
+moocore
+shapely>=2.0
+pyproj>=3.5

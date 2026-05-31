@@ -15,7 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from config.iea37_aepcalc import calcAEP
+from core.aep import calcAEP
 from core.cabling_v3 import analisar_layout_completo
 from core.wfwe import WindFarm
 
@@ -205,17 +205,21 @@ def plot_wake_fields(farm, title, filename, output_dir='.'):
         save_path=os.path.join(output_dir, filename)
     )
 
-def generate_evolution_gifs(p1_frames, p2_frames, h_p1_aep, h_p2_net, h_p2_capex, 
-                            config, turb_atrbt_data, wind_rose_data, output_dir):
+def generate_evolution_gifs(p1_frames, p2_frames, h_p1_aep, h_p2_net, h_p2_capex,
+                            config, turb_atrbt_data, wind_rose_data, boundary, output_dir):
     print("\n" + "═"*50)
     print("  Rendering Animation GIFs")
     print("═"*50)
     
-    radius = float(config.get("boundary_radius", 1300.0))
     n_turb = config.get("n_turbines", 16)
-    
+
     turb_ci, turb_co, rated_ws, rated_pwr, turb_diam = turb_atrbt_data
     wind_dir, wind_freq, wind_speed = wind_rose_data
+
+    xmin, ymin, xmax, ymax = boundary.bbox
+    pad = max(xmax - xmin, ymax - ymin) * 0.12
+    ax_xlim = (xmin - pad, xmax + pad)
+    ax_ylim = (ymin - pad, ymax + pad)
     
     total_p1 = len(p1_frames)
     total_p2 = len(p2_frames)
@@ -231,11 +235,11 @@ def generate_evolution_gifs(p1_frames, p2_frames, h_p1_aep, h_p2_net, h_p2_capex
         fig, ax = plt.subplots(figsize=(9.5, 7), facecolor="#0a1628")
         ax.set_facecolor("#0a1628")
         
-        boundary = Circle((0, 0), radius, fill=False, linestyle="--", color="white", alpha=0.3, lw=1.2)
-        ax.add_patch(boundary)
-        
-        ax.set_xlim(-radius - 200, radius + 200)
-        ax.set_ylim(-radius - 200, radius + 200)
+        boundary_patch = boundary.to_patch()
+        ax.add_patch(boundary_patch)
+
+        ax.set_xlim(*ax_xlim)
+        ax.set_ylim(*ax_ylim)
         ax.set_aspect("equal")
         ax.grid(True, color="#1e3050", lw=0.4)
         ax.tick_params(colors="white", labelsize=8)
@@ -255,8 +259,9 @@ def generate_evolution_gifs(p1_frames, p2_frames, h_p1_aep, h_p2_net, h_p2_capex
                         wind_direction=270.0,
                         wind_speed_free_stream=float(wind_speed[0]),
                         turbine_diameter=turb_diam)
-        limit_val = radius + turb_diam * 2
-        X, Y, V = farm.get_velocity_field(resolution=100, x_bounds=(-limit_val, limit_val), y_bounds=(-limit_val, limit_val))
+        x_lo, x_hi = ax_xlim
+        y_lo, y_hi = ax_ylim
+        X, Y, V = farm.get_velocity_field(resolution=100, x_bounds=(x_lo, x_hi), y_bounds=(y_lo, y_hi))
         ax.contourf(X, Y, V, levels=30, cmap="coolwarm_r", alpha=0.85, zorder=1)
         
         if phase == 2:
@@ -319,13 +324,13 @@ def generate_evolution_gifs(p1_frames, p2_frames, h_p1_aep, h_p2_net, h_p2_capex
     print("Rendering aep_evolution.gif...")
     frames_aep = []
     x1 = list(range(1, len(h_p1_aep) + 1))
-    y1 = [v/1e3 for v in h_p1_aep]
+    y1 = [max(v/1e3, 0.0) for v in h_p1_aep]
     
     x2 = list(range(len(h_p1_aep), len(h_p1_aep) + len(h_p2_net) + 1))
     
     # Ensure the graph connects cleanly
     y2_start = y1[-1] if y1 else 0
-    y2 = [y2_start] + [v/1e3 for v in h_p2_net]
+    y2 = [y2_start] + [max(v/1e3, 0.0) for v in h_p2_net]
     
     all_y = y1 + y2
     valid_y = [y for y in all_y if y > 0]
@@ -389,7 +394,7 @@ def generate_evolution_gifs(p1_frames, p2_frames, h_p1_aep, h_p2_net, h_p2_capex
             labels += labels2
         
         if lines:
-            leg = ax.legend(lines, labels, loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=2, facecolor="#0a1628", edgecolor="#1e3050", fontsize=9)
+            leg = ax.legend(lines, labels, loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3, facecolor="#0a1628", edgecolor="#1e3050", fontsize=9)
             for text in leg.get_texts():
                 text.set_color("white")
                 
