@@ -30,7 +30,7 @@ The key contributions are:
 - **Two-Phase Genome Expansion** — Phase 1 optimizes turbine positions; Phase 2 expands the genome to jointly co-design substation placement and cable grouping.
 - **Site-Agnostic Architecture** — Fully supports arbitrary polygonal wind farm boundaries via GeoJSON with deterministic regular grid initialization.
 - **Strict Angular Partitioning (SAP)** — Guarantees 100% planar, non-crossing cable networks in O(N log N) time, without MILP solvers.
-- **Integrated Cost Model** — SAP's sector-bounded topology enables direct analytical computation of cable lengths per group, making cabling CAPEX a tractable optimisation objective.
+- **Integrated Cost Model** — SAP's sector-bounded topology enables direct analytical computation of cable lengths per group, making cabling CAPEX a tractable optimization objective.
 
 ---
 
@@ -84,6 +84,8 @@ This runs the optimization on the default case config (`cases/case_example.yaml`
 
 ```
 results/user_run/
+├── convergence_history.json # JSON array logging metrics (Net AEP, CAPEX) per generation
+├── pareto_solutions.json    # JSON containing coordinates, parameters, and metrics for all optimal Pareto layouts
 ├── aep_evolution.png        # Trajectory of AEP/CAPEX metrics
 ├── pareto_front.png         # Final Pareto front (AEP vs CAPEX)
 ├── knee_layout.png          # Optimal layout of turbines and cables at the Knee Point
