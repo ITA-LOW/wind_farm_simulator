@@ -32,7 +32,12 @@ To model a different wind turbine:
    * **`power_curve`**: The wind speed bins (`wind_speed` in m/s) and corresponding power output values (`electrical_power` in W).
 
 ### 3. Custom Wind Rose Resource
-To model a different wind location:
+To model a different wind location, you have two options:
+
+**Option A (Automatic):**
+Simply set `windrose_yaml: "auto"` in your case configuration (in the `cases/` directory). The simulator will automatically fetch 2 years of hourly meteorological wind data (ERA5) from the Open-Meteo API using the WGS84 centroid of your GeoJSON boundary. You **do not** need to create a custom YAML file.
+
+**Option B (Static File / Measured Data):**
 1. Copy `config/windrose/iea37-windrose.yaml` and rename it (e.g., `config/windrose/my_custom_windrose.yaml`).
 2. Modify the properties under `definitions.wind_resource`:
    * **`direction.bins`**: List of directional sectors. You can define **any number of sectors/bins** (e.g., 8, 12, 16, or 36 bins).

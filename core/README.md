@@ -13,6 +13,15 @@ Handles the loading, projection, and enforcement of arbitrary polygonal boundari
 
 ---
 
+## `wind_rose.py` — Meteorological Integration & Diagnostics
+
+Manages dynamic wind data retrieval and site-suitability analysis.
+- **ERA5 API Integration**: Automatically fetches the latest 2 years of hourly wind data from Open-Meteo based on the WGS84 coordinates derived from the `boundary.py` GeoJSON centroid.
+- **Power Law Extrapolation**: Dynamically extrapolates 100m wind speeds to the specific turbine's `hub_height`.
+- **Site Suitability Diagnostics**: Evaluates the raw hourly data array against the turbine's specific power curve attributes (`cut_in`, `cut_out`, `rated_ws`) to generate automated reports (e.g., % time operating in cubic region vs rated power).
+
+---
+
 ## `aep.py` & `wfwe.py` — Aerodynamic & Wake Models
 
 ### `aep.py`
