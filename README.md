@@ -124,6 +124,7 @@ wind_farm_simulator/
 │
 ├── cases/                  # Custom simulation cases (YAML files)
 │   ├── case_example.yaml   # Default case
+│   ├── island_test.yaml    # Test case with a forbidden zone (island)
 │   └── README.md           # Instructions on how to build custom cases
 │
 ├── config/                 # Site geometry, turbines, and wind resources
