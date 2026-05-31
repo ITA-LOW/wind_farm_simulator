@@ -139,8 +139,8 @@ if __name__ == "__main__":
     banner("Rendering Outputs and GIFs")
     
     # Load required data for plotting
-    turb_yaml = os.path.join(os.path.dirname(ROOT), config.get("turbine_yaml", "config/iea37-335mw.yaml"))
-    wind_yaml = os.path.join(os.path.dirname(ROOT), config.get("windrose_yaml", "config/iea37-windrose.yaml"))
+    turb_yaml = os.path.join(ROOT, config.get("turbine_yaml", "config/iea37-335mw.yaml"))
+    wind_yaml = os.path.join(ROOT, config.get("windrose_yaml", "config/iea37-windrose.yaml"))
     
     turb_atrbt_data = getTurbAtrbtYAML(turb_yaml)
     wind_rose_data = getWindRoseYAML(wind_yaml)

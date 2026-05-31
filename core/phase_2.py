@@ -6,11 +6,11 @@ import multiprocessing
 from deap import base, creator, tools, algorithms
 
 # Setup path so we can import from config
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from config.iea37_aepcalc import calcAEP, getTurbLocYAML, getWindRoseYAML, getTurbAtrbtYAML
+from config.iea37_aepcalc import calcAEP, getWindRoseYAML, getTurbAtrbtYAML
 from core.cabling_v3 import analisar_layout_completo
 
 def is_within_circle(x, y, radius):

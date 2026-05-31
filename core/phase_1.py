@@ -6,7 +6,7 @@ import multiprocessing
 from deap import base, creator, tools, algorithms
 
 # Setup path so we can import from config
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
@@ -35,13 +35,13 @@ class Phase1Optimizer:
         wind_yaml = os.path.join(ROOT, self.config["windrose_yaml"])
         layout_yaml = os.path.join(ROOT, self.config["initial_layout_yaml"])
         
-        # Pre-load data to match campeao_16.py optimization
-        self.turb_loc_data = getTurbLocYAML(layout_yaml)
+        # Pre-load data
+        self.turb_coords_init = getTurbLocYAML(layout_yaml)  # ndarray (N, 2)
         self.turb_atrbt_data = getTurbAtrbtYAML(turb_yaml)
         self.wind_rose_data = getWindRoseYAML(wind_yaml)
         
         # Extract constants
-        self.n_turb = len(self.turb_loc_data[0])
+        self.n_turb = len(self.turb_coords_init)
         self.radius = float(self.config.get("boundary_radius", 1300.0))
         
         turb_diam = self.turb_atrbt_data[4]
@@ -57,7 +57,6 @@ class Phase1Optimizer:
         
     def _evaluate_otimizado(self, individual):
         # Desempacota os dados previamente carregados
-        turb_coords_yaml, fname_turb, fname_wr = self.turb_loc_data
         turb_ci, turb_co, rated_ws, rated_pwr, turb_diam = self.turb_atrbt_data
         wind_dir, wind_freq, wind_speed = self.wind_rose_data
 
@@ -104,8 +103,7 @@ class Phase1Optimizer:
         tb.register("map", pool.map)
         
         # Setup population exactly like campeao_16.py
-        initial_coords = self.turb_loc_data[0]
-        tb.register("individual", self._create_individual, coords=initial_coords)
+        tb.register("individual", self._create_individual, coords=self.turb_coords_init)
         tb.register("population", tools.initRepeat, list, tb.individual)
         
         tb.register("evaluate", self._evaluate_otimizado)
