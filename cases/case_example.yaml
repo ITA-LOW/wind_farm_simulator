@@ -1,11 +1,11 @@
 # Simulation configuration
 name: "My wind farm simulation"
-n_turbines: 17
+n_turbines: 25
 min_spacing_multiplier: 2.0  # 2 * rotor_diameter
 
 # Input files (relative to repository root)
 turbine_yaml:     "config/turbines/iea37-335mw.yaml"
-boundary_geojson: "config/boundaries/break_bb.geojson"
+boundary_geojson: "config/boundaries/my_site.geojson"
 windrose_yaml: "auto"
 # windrose_yaml: "config/windrose/iea37-windrose.yaml" # uncomment to use fixed wind rose (comment previous line)
 
@@ -24,11 +24,11 @@ plateau_generations_p1: 200   # Phase 1 plateau generations
 plateau_generations_p2: 200  # Phase 2 plateau generations
 
 # Substation: "optimize" to co-optimize position, or a [X, Y] coordinate list to keep it fixed
-#substation: "optimize"
-substation: "from_geojson"
+substation: "optimize"
+#substation: "from_geojson"
 
 # Cable groups (number of independent strings in SAP)
 cable_groups:
   min_groups: 2
-  max_groups: 5
+  max_groups: 20
 

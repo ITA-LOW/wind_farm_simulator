@@ -230,6 +230,7 @@ def recalculate_physics():
             <div><strong>Net AEP:</strong> <span style="color: #22c55e;">{net_aep/1e3:.3f} GWh</span></div>
             <div><strong>Cabling CAPEX:</strong> <span style="color: #ef4444;">${capex/1e3:,.2f} kUSD</span></div>
             <div><strong>Cross-Section:</strong> {secao} mm²</div>
+            <div><strong>Number of Strings:</strong> {current_n_groups}</div>
         </div>
     </div>
     """
@@ -263,9 +264,19 @@ pareto_scatter = p_pareto.scatter(
     color="#0284c7", alpha=0.7,
     nonselection_alpha=0.2, selection_color="#ef4444"
 )
+
+# Highlight Knee Point
+p_pareto.scatter(
+    x=[capexs[knee_idx]], y=[aeps[knee_idx]],
+    size=20, marker="star", color="gold", line_color="#d97706", line_width=1.5,
+    legend_label="Knee Point"
+)
+
 p_pareto.add_tools(HoverTool(renderers=[pareto_scatter], tooltips=[
     ("Rank", "@rank"), ("AEP", "@y{0.00} GWh"), ("CAPEX", "$@x{0,0} kUSD")
 ]))
+
+p_pareto.legend.location = "bottom_right"
 
 # --- Mapa Interativo ---
 p_map = figure(

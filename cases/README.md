@@ -20,7 +20,7 @@ turbine_yaml: "config/turbines/iea37-335mw.yaml"   # Turbine specifications YAML
 # - "auto" : Automatically fetches 2 years of ERA5 satellite data for the site's coordinates
 # - "config/windrose/my_wind.yaml" : Path to a custom YAML for benchmarking or anemometer data
 windrose_yaml: "auto"
-boundary_geojson: "config/boundaries/site_boundary.geojson" # Site polygonal boundary
+boundary_geojson: "config/boundaries/my_site.geojson" # Site polygonal boundary
 
 # Genetic Algorithm parameters
 population_size: 300                      # GA population size

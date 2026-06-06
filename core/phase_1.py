@@ -216,6 +216,12 @@ class Phase1Optimizer:
                 ind.fitness.values = fit
                 
             hof.update(offspring)
+            
+            # --- ELITISM ---
+            # Replace the worst individual in the offspring with the best from Hall of Fame
+            worst_idx = min(range(len(offspring)), key=lambda i: offspring[i].fitness.values[0])
+            offspring[worst_idx] = tb.clone(hof[0])
+            
             pop[:] = offspring
             
             record = stats.compile(pop) if stats else {}
@@ -248,9 +254,14 @@ class Phase1Optimizer:
         # Captura os dados
         best_ind = hof[0]
         best_coords = np.array(best_ind).reshape((self.n_turb, 2))
-        
-        # Filtra valores negativos para não estragar o gráfico do orquestrador
-        history_best = [max(0.0, record['max']) for record in logbook]
+
+        history_best = []
+        for record in logbook:
+            history_best.append(max(0.0, record['max']))
+
+        for i in range(1, len(history_best)):
+            if history_best[i] < history_best[i-1]:
+                history_best[i] = history_best[i-1]
         
         return best_coords, history_best, pop, logbook, frames
 
