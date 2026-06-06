@@ -216,6 +216,10 @@ def generate_evolution_gifs(p1_frames, p2_frames, h_p1_aep, h_p2_net, h_p2_capex
     turb_ci, turb_co, rated_ws, rated_pwr, turb_diam = turb_atrbt_data
     wind_dir, wind_freq, wind_speed = wind_rose_data
 
+    # Determine dominant wind direction for accurate plotting
+    dominant_dir_idx = np.argmax(wind_freq)
+    dominant_wind_dir = float(wind_dir[dominant_dir_idx])
+
     xmin, ymin, xmax, ymax = boundary.bbox
     pad = max(xmax - xmin, ymax - ymin) * 0.12
     ax_xlim = (xmin - pad, xmax + pad)
@@ -256,7 +260,7 @@ def generate_evolution_gifs(p1_frames, p2_frames, h_p1_aep, h_p2_net, h_p2_capex
             phase = 2
             
         farm = WindFarm(coords,
-                        wind_direction=270.0,
+                        wind_direction=dominant_wind_dir,
                         wind_speed_free_stream=float(wind_speed[0]),
                         turbine_diameter=turb_diam)
         x_lo, x_hi = ax_xlim

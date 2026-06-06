@@ -114,6 +114,7 @@ The optimizer will automatically run:
 1. **Phase 1 (Layout-only)**: Optimizes turbine locations for maximum AEP. Stops automatically when a performance plateau is detected.
 2. **Phase 2 (Co-design)**: Expands the genome to optimize turbine locations, substation position, and cable grouping. Stops when the objectives on the Pareto front converge.
 3. **Visualization & Plotting**: Generates real evolution GIFs (`phase1_evolution.gif` and `phase2_cabling.gif`) and a static `aep_evolution.png` plot showing the exact AEP trajectory and phase transition.
+4. **Interactive Dashboard**: Launches a real-time, side-by-side Bokeh dashboard where you can explore the Pareto front, manually drag turbines on a map, and see cabling and AEP physics re-calculated instantly.
 
 ### Running custom configurations:
 1. Create a custom configuration file, e.g., `cases/my_case.yaml` (see [cases/README.md](cases/README.md) for details).
@@ -147,6 +148,7 @@ wind_farm_simulator/
 │   ├── aep.py              # Bastankhah Gaussian wake AEP calculator
 │   ├── boundary.py         # GeoJSON loading and Cartesian projection
 │   ├── cabling_v3.py       # SAP algorithm + electrical model + CAPEX
+│   ├── dashboard.py        # Interactive drag-and-drop dashboard
 │   ├── phase_1.py          # GA Layout Optimization
 │   ├── phase_2.py          # NSGA-II Co-design Optimization
 │   ├── plot.py             # Publication-quality plotting utilities

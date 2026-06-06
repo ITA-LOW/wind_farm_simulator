@@ -10,7 +10,7 @@ definitions:
       radius:
         default: 65.0       # Rotor radius in meters (Rotor Diameter = 130m)
       hub_height:
-        default: 150.0      # Hub height in meters
+        default: 85.0      # Hub height in meters
 
   operating_mode:
     properties:

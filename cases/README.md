@@ -36,8 +36,10 @@ alpha: 0.5                                 # Blend crossover blending parameter 
 plateau_generations_p1: 200                # Phase 1 gens without improvement to trigger stop
 plateau_generations_p2: 200                # Phase 2 gens without improvement to trigger stop
 
-# Substation: "optimize" to co-optimize coordinates, or [X, Y] list to keep it fixed (default: "optimize")
-substation: "optimize" # substation: [300, 200] for fixed substation for example
+# Substation: 
+# - "optimize": Co-optimize coordinates dynamically
+# - "from_geojson": Extract a point feature from the GeoJSON to serve as the substation
+substation: "from_geojson"
 
 # Inter-array cabling groups (SAP strings)
 cable_groups:

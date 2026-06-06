@@ -11,6 +11,7 @@ A clean and modular orchestrator that manages the two-phase optimization:
 import os
 import sys
 import time
+import subprocess
 import yaml
 import json
 import argparse
@@ -135,6 +136,15 @@ if __name__ == "__main__":
     turb_atrbt_data = getTurbAtrbtYAML(turb_yaml)
     boundary = SiteBoundary.from_geojson(geojson_path)
     
+    # NEW: Process 'from_geojson' substation mode
+    if config.get("substation") == "from_geojson":
+        if boundary.substation_pos is None:
+            raise ValueError("Config indicates substation='from_geojson', but no Point (marker) was found in the GeoJSON file.")
+        config["substation"] = {
+            "mode": "fixed",
+            "fixed_pos": boundary.substation_pos
+        }
+    
     wind_config = config.get("windrose_yaml", "config/iea37-windrose.yaml")
     if wind_config == "auto":
         from core.wind_rose import get_automatic_wind_rose
@@ -171,6 +181,9 @@ if __name__ == "__main__":
         with open(os.path.join(args.output, "wind_diagnostic.json"), "w") as f:
             json.dump(diagnostic, f, indent=4)
         
+        # Save wind data as NPZ for the interactive editor to load instantly
+        np.savez(os.path.join(args.output, "wind_data.npz"), wind_dir=wind_dir, wind_freq=wind_freq, wind_speed=wind_speed)
+
         # Save plot
         plot_path = os.path.join(args.output, "auto_wind_rose.png")
         plot_wind_rose(wind_dir, wind_freq, wind_speed, plot_path)
@@ -210,6 +223,11 @@ if __name__ == "__main__":
     if pareto_data_plot:
         plot_pareto_front(pareto_data_plot, config.get("name", "Simulation"), args.output)
 
-    t1 = time.time()
-    banner(f"Optimization Finished in {(t1 - t0) / 60.0:.2f} minutes!")
+    execution_time = (time.time() - t0) / 60.0
+    
+    # Launch Interactive Dashboard
+    subprocess.run(["bokeh", "serve", "--show", "core/dashboard.py", "--args", args.output, args.case])
+        
+    print("\n" + "═"*70)
+    print(f"  Optimization Finished in {execution_time:.2f} minutes!")
     print(f"Check the {args.output} folder for the generated GIFs and logs.")

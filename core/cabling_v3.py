@@ -5,9 +5,30 @@ import numpy as np
 # 1. HELPER FUNCTIONS
 # =============================================================================
 
-def calculate_distance(x1, y1, x2, y2):
-    """Calculate Euclidean distance between two points using math.hypot."""
-    return math.hypot(x2 - x1, y2 - y1)
+def calculate_distance(x1, y1, x2, y2, is_b_sub=False, hub_height=130.0, water_depth=40.0, slack=1.05):
+    """
+    Calculate the realistic 3D length of the submarine/underground cable.
+    
+    Includes:
+    - 2D Euclidean distance on the seabed.
+    - Slack allowance (e.g., 5% extra) for routing and topography.
+    - Vertical drop from Turbine A nacelle to the seabed.
+    - Vertical rise from the seabed to Turbine B nacelle OR Substation deck.
+    """
+    dist_2d = math.hypot(x2 - x1, y2 - y1)
+    seabed_length = dist_2d * slack
+    
+    # Turbine A (Always a turbine in inward radial flow)
+    drop_a = hub_height + water_depth
+    
+    # Node B (Can be another turbine or the substation)
+    substation_deck_height = 20.0
+    if is_b_sub:
+        rise_b = substation_deck_height + water_depth
+    else:
+        rise_b = hub_height + water_depth
+        
+    return seabed_length + drop_a + rise_b
 
 
 # =============================================================================
@@ -123,10 +144,13 @@ class Plant:
             Pacc = 0.0
             for i in range(len(path) - 1):
                 a, b = path[i], path[i + 1]
+                is_b_sub = (i == len(path) - 2)  # True if the next node is the substation
+                
                 Pacc += self.Tr[a].P
                 L = calculate_distance(
                     self.Tr[a].x, self.Tr[a].y,
-                    self.Tr[b].x, self.Tr[b].y
+                    self.Tr[b].x, self.Tr[b].y,
+                    is_b_sub=is_b_sub
                 )
                 cable_path.append(Cable(L, self.Vn, Pacc))
             self.Cb.append(cable_path)

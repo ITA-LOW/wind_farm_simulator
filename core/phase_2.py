@@ -143,15 +143,16 @@ class Phase2Optimizer:
             capex = res["custo_total_usd"]
             losses = res["perda_anual_mwh"]
             
-            # Check for cable intersections with boundaries/holes
+            # Check for cable intersections with boundaries/islands
             from shapely.geometry import LineString
             for path in planta.paths:
                 for i in range(len(path) - 1):
                     p1 = combined_coords[path[i]]
                     p2 = combined_coords[path[i+1]]
                     line = LineString([p1, p2])
-                    # If the cable crosses a hole or goes outside the site, penalize heavily
-                    if not self.boundary._poly.contains(line):
+                    # If the cable crosses an island, penalize heavily.
+                    # Cables are permitted to cross outside the main site boundary.
+                    if self.boundary.crosses_hole(line):
                         penalty += 1e6
                         
         except Exception:

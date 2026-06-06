@@ -1,12 +1,13 @@
 # Simulation configuration
 name: "My wind farm simulation"
-n_turbines: 27
-min_spacing_multiplier: 3.0  # 2 * rotor_diameter
+n_turbines: 17
+min_spacing_multiplier: 2.0  # 2 * rotor_diameter
 
 # Input files (relative to repository root)
 turbine_yaml:     "config/turbines/iea37-335mw.yaml"
-windrose_yaml:    "config/windrose/iea37-windrose.yaml"
-boundary_geojson: "config/boundaries/site_boundary.geojson"
+boundary_geojson: "config/boundaries/break_bb.geojson"
+windrose_yaml: "auto"
+# windrose_yaml: "config/windrose/iea37-windrose.yaml" # uncomment to use fixed wind rose (comment previous line)
 
 # Genetic Algorithm parameters
 population_size: 300
@@ -23,10 +24,11 @@ plateau_generations_p1: 200   # Phase 1 plateau generations
 plateau_generations_p2: 200  # Phase 2 plateau generations
 
 # Substation: "optimize" to co-optimize position, or a [X, Y] coordinate list to keep it fixed
-substation: "optimize"
+#substation: "optimize"
+substation: "from_geojson"
 
 # Cable groups (number of independent strings in SAP)
 cable_groups:
-  min_groups: 4
-  max_groups: 15
+  min_groups: 2
+  max_groups: 5
 

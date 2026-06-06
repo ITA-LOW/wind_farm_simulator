@@ -20,8 +20,9 @@ If you need to simulate custom wind farm configurations for a real-world locatio
 ### 1. Custom Boundaries (GeoJSON)
 To model a specific wind farm site:
 1. Use a tool like [geojson.io](https://geojson.io/) to draw your polygon.
-2. Export it as GeoJSON and save it in `config/boundaries/my_site.geojson`.
-3. The optimizer will automatically read the vertices, project them to local coordinates (meters), and ensure all turbines are placed perfectly inside this area.
+2. **Substation Position (Optional):** If you want to fix the substation to a specific geographical coordinate natively, add a `Point` geometry to the same GeoJSON file.
+3. Export it as GeoJSON and save it in `config/boundaries/my_site.geojson`.
+4. The optimizer will automatically read the vertices, project them to local coordinates (meters), and ensure all turbines are placed perfectly inside this area. If you added a `Point` for the substation, you can use `substation: "from_geojson"` in your case config.
 
 ### 2. Custom Turbine Specifications
 To model a different wind turbine:

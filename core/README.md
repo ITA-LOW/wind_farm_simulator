@@ -80,3 +80,13 @@ Helper functions for publication-quality figures:
 | `plot_pareto_front` | Pareto front scatter (Net AEP vs CAPEX) |
 | `plot_cabling_layout` | Colour-coded inter-array cable network layout |
 | `plot_wake_fields` | High-res wake field heatmap (wraps `wfwe.py`) |
+
+---
+
+## `dashboard.py` — Interactive Dashboard
+
+The interactive graphical user interface built with **Bokeh Server**. It launches automatically at the end of the `orchestrator.py` optimization loop.
+- **Instant Loading**: Directly consumes cached `wind_data.npz` and Pareto solutions without re-fetching API data.
+- **Side-by-Side Co-design**: Visualises the Pareto front alongside a fully interactive Web Mercator map.
+- **Drag-and-Drop Editor**: Users can manually drag turbines on the map to interactively explore micro-siting variants.
+- **Real-Time Physics**: As you drag a turbine, the dashboard immediately projects coordinates, re-evaluates the AEP (wake model), and re-routes the SAP cabling (CAPEX and losses), instantly updating the dashboard metrics.

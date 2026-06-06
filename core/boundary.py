@@ -27,7 +27,7 @@ import json
 import random
 
 from shapely.geometry import Point, shape
-from shapely.ops import transform
+from shapely.ops import transform, nearest_points, unary_union
 import pyproj
 
 
@@ -43,10 +43,13 @@ class SiteBoundary:
         Site area (holes excluded) in km².
     """
 
-    def __init__(self, polygon_m):
+    def __init__(self, polygon_m, lon0=0.0, lat0=0.0):
         self._poly = polygon_m
         self.bbox = polygon_m.bounds          # (xmin, ymin, xmax, ymax)
         self.area_km2 = polygon_m.area / 1e6
+        self.substation_pos = None            # Populated if a Point is found in GeoJSON
+        self.lon0 = lon0
+        self.lat0 = lat0
 
     # ------------------------------------------------------------------
     # Construction
@@ -70,11 +73,14 @@ class SiteBoundary:
         shapes = [shape(g) for g in geom_dicts if g is not None]
         
         polygons = []
+        points = []
         for s in shapes:
             if s.geom_type == "Polygon":
                 polygons.append(s)
             elif s.geom_type == "MultiPolygon":
                 polygons.extend(list(s.geoms))
+            elif s.geom_type == "Point":
+                points.append(s)
                 
         if not polygons:
             raise ValueError(
@@ -82,24 +88,31 @@ class SiteBoundary:
                 "Draw at least one polygon in geojson.io."
             )
 
-        # To handle multiple polygons (e.g. drawn islands):
-        # We assume the polygon with the largest area is the site boundary,
-        # and any other polygons are holes (forbidden zones) to be subtracted.
         polygons.sort(key=lambda p: p.area, reverse=True)
-        polygon_lonlat = polygons[0]
         
-        for hole in polygons[1:]:
+        base_regions = [polygons[0]]
+        holes = []
+        
+        for p in polygons[1:]:
+            # If p is mostly contained within any base region, it's a hole
+            is_hole = False
+            for base in base_regions:
+                if base.contains(p) or base.intersection(p).area > 0.9 * p.area:
+                    is_hole = True
+                    break
+            
+            if is_hole:
+                holes.append(p)
+            else:
+                base_regions.append(p)
+
+        polygon_lonlat = unary_union(base_regions)
+        for hole in holes:
             polygon_lonlat = polygon_lonlat.difference(hole)
 
-        if polygon_lonlat.geom_type == "MultiPolygon":
-            # Just take the largest part if difference splits the geometry
-            parts = list(polygon_lonlat.geoms)
-            parts.sort(key=lambda p: p.area, reverse=True)
-            polygon_lonlat = parts[0]
-            
-        if polygon_lonlat.geom_type != "Polygon":
+        if polygon_lonlat.geom_type not in ["Polygon", "MultiPolygon"]:
             raise ValueError(
-                f"Resulting geometry must be a Polygon, got "
+                f"Resulting geometry must be Polygon or MultiPolygon, got "
                 f"'{polygon_lonlat.geom_type}'."
             )
 
@@ -114,7 +127,16 @@ class SiteBoundary:
             "EPSG:4326", proj_str, always_xy=True
         )
         polygon_m = transform(transformer.transform, polygon_lonlat)
-        return cls(polygon_m)
+        
+        boundary = cls(polygon_m, lon0, lat0)
+        
+        if points:
+            # Transform the first point found in the GeoJSON
+            pt_lon, pt_lat = points[0].x, points[0].y
+            pt_x, pt_y = transformer.transform(pt_lon, pt_lat)
+            boundary.substation_pos = [float(pt_x), float(pt_y)]
+        
+        return boundary
 
     # ------------------------------------------------------------------
     # Geometric operations (used by the optimisers)
@@ -130,15 +152,12 @@ class SiteBoundary:
     def enforce(self, x, y):
         """
         If (x, y) is outside the valid area, return the nearest point on
-        the polygon boundary.  Handles holes correctly: a point inside a
-        forbidden zone is projected to its nearest valid edge.
+        the polygon boundary.
         """
         pt = Point(x, y)
         if self._poly.contains(pt):
             return x, y
-        nearest = self._poly.boundary.interpolate(
-            self._poly.boundary.project(pt)
-        )
+        _, nearest = nearest_points(pt, self._poly.boundary)
         return nearest.x, nearest.y
 
     def random_point(self):
@@ -157,6 +176,27 @@ class SiteBoundary:
             "Could not sample a valid point inside the boundary after many "
             "attempts. Check that your GeoJSON polygon is not degenerate."
         )
+
+    def crosses_hole(self, line):
+        """
+        Return True if the LineString crosses any hole (forbidden zone).
+        It is allowed to go outside the exterior boundary, but not through holes.
+        """
+        from shapely.geometry import Polygon
+        if self._poly.geom_type == "Polygon":
+            polys = [self._poly]
+        elif self._poly.geom_type == "MultiPolygon":
+            polys = list(self._poly.geoms)
+        else:
+            polys = []
+            
+        for p in polys:
+            for interior in p.interiors:
+                hole_poly = Polygon(interior)
+                intersection = hole_poly.intersection(line)
+                if not intersection.is_empty and intersection.length > 1e-3:
+                    return True
+        return False
 
     # ------------------------------------------------------------------
     # Visualisation
@@ -181,9 +221,11 @@ class SiteBoundary:
             codes.extend([Path.LINETO] * (len(coords) - 2))
             codes.append(Path.CLOSEPOLY)
 
-        _ring(self._poly.exterior)
-        for interior in self._poly.interiors:
-            _ring(interior)
+        polys = self._poly.geoms if self._poly.geom_type == "MultiPolygon" else [self._poly]
+        for p in polys:
+            _ring(p.exterior)
+            for interior in p.interiors:
+                _ring(interior)
 
         defaults = dict(
             fill=False, linestyle="--", edgecolor="white", alpha=0.4, lw=1.5
