@@ -45,9 +45,20 @@ The optimization co-design process discovers a set of Pareto-optimal trade-offs.
 | ![Layout evolution](results/user_run/evolution_layout.gif) | ![AEP evolution](results/user_run/aep_evolution.gif) |
 | Turbines spread to reduce wake losses, then cables & substation are routed in Phase 2 toward the Knee Point. | Net AEP dips when cabling losses are introduced, then recovers via co-design toward the Knee Point. |
 
-### Site-Agnostic Obstacle Avoidance (Island Feature)
+</div>
+
+### Site-Agnostic Boundaries & Obstacle Avoidance
 
 The framework natively supports **forbidden zones** (holes inside the GeoJSON polygon). By leveraging heavy geometric penalties, the evolutionary process automatically learns to position the substation, turbines, and cable routing networks such that they strictly avoid the forbidden area without requiring heavy pathfinding algorithms.
+
+**How to design your own site:**
+1. Go to [geojson.io](https://geojson.io/).
+2. Draw your wind farm boundary using the `Polygon` tool. You can also draw inner polygons to create "holes" (forbidden zones like islands or environmental protections).
+3. **Smart Substation Auto-Detect:** If you want to fix the electrical substation to a specific geographical coordinate, simply draw a `Point` marker anywhere on the map. The orchestrator will automatically detect it and lock the substation to that exact location. If you do **not** draw any points, the optimizer will automatically co-design and optimize the substation's position alongside the turbines.
+4. Export the map as a `GeoJSON` file and save it inside the `config/boundaries/` directory.
+5. Update the `boundary_geojson` key in your custom YAML file to point to your new file.
+
+<div align="center">
 
 | Island Layout Evolution | Island AEP Evolution |
 |:---:|:---:|
@@ -77,9 +88,21 @@ The framework is truly site-agnostic. By setting `windrose_yaml: "auto"` in the 
 
 ### 1. Clone & install
 
+**Para Linux / macOS:**
 ```bash
 git clone https://github.com/ITA-LOW/wind_farm_simulator.git
 cd wind_farm_simulator
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Para Windows:**
+```powershell
+git clone https://github.com/ITA-LOW/wind_farm_simulator.git
+cd wind_farm_simulator
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
@@ -114,7 +137,7 @@ The optimizer will automatically run:
 1. **Phase 1 (Layout-only)**: Optimizes turbine locations for maximum AEP. Stops automatically when a performance plateau is detected.
 2. **Phase 2 (Co-design)**: Expands the genome to optimize turbine locations, substation position, and cable grouping. Stops when the objectives on the Pareto front converge.
 3. **Visualization & Plotting**: Generates real evolution GIFs (`phase1_evolution.gif` and `phase2_cabling.gif`) and a static `aep_evolution.png` plot showing the exact AEP trajectory and phase transition.
-4. **Interactive Dashboard**: Launches a real-time, side-by-side Bokeh dashboard where you can explore the Pareto front, manually drag turbines on a map, and see cabling and AEP physics re-calculated instantly.
+4. **Interactive Dashboard**: Launches a real-time, side-by-side Bokeh dashboard where you can explore the Pareto front, manually drag turbines and the substation on a map, and see cabling and AEP physics re-calculated instantly.
 
 ### Running custom configurations:
 1. Create a custom configuration file, e.g., `cases/my_case.yaml` (see [cases/README.md](cases/README.md) for details).
@@ -122,6 +145,19 @@ The optimizer will automatically run:
 ```bash
 python orchestrator.py --case cases/my_case.yaml --output results/my_results
 ```
+
+### Reopening a Previous Dashboard
+
+If you want to review the interactive dashboard of a previously completed simulation without re-running the heavy optimization process, you can launch the Bokeh server directly from the terminal. 
+
+Use the following command, passing the path to the **results directory** and the **case configuration file**:
+
+```bash
+bokeh serve --show core/dashboard.py --args results/user_run cases/case_example.yaml
+```
+
+> **Note on `wind_data.npz`**: Inside your results folder, you will notice a `wind_data.npz` file. This acts as a highly optimized local cache of the wind resources (whether fetched from the ERA5 API or parsed from a custom YAML). The dashboard relies on this file to launch instantly and recalculate wake physics in real-time, completely skipping the need to re-download satellite data from the internet every time you reopen the interface.
+
 ---
 
 ## Framework Architecture

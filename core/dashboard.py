@@ -70,7 +70,11 @@ if os.path.exists(wind_npz):
     wind_freq = npz_data['wind_freq']
     wind_speed = npz_data['wind_speed']
 else:
-    wind_config = config.get("windrose_yaml", "config/windrose/iea37-windrose.yaml")
+    wind_config = config.get("windrose_yaml")
+    if not wind_config:
+        print("\n[ERROR] Wind configuration not found! Please define 'windrose_yaml' in your case configuration file (e.g., 'auto' or a path to a YAML file).\n")
+        exit(1)
+        
     if wind_config == "auto":
         from core.wind_rose import get_automatic_wind_rose
         try:
@@ -235,10 +239,11 @@ def recalculate_physics():
     </div>
     """
 
-# Connect the "Drag" turbines event
+# Connect the "Drag" event for both turbines and substation
 def on_turb_change(attr, old, new):
     recalculate_physics()
 turb_source.on_change('data', on_turb_change)
+sub_source.on_change('data', on_turb_change)
 
 # Connect the click on the Pareto Chart
 def on_pareto_select(attr, old, new):
@@ -281,6 +286,7 @@ p_pareto.legend.location = "bottom_right"
 # --- Mapa Interativo ---
 p_map = figure(
     sizing_mode="stretch_both",
+    match_aspect=True,
     x_axis_type="mercator", y_axis_type="mercator",
     title="Drag and Drop Physics Editor",
     tools="pan,wheel_zoom,save,reset"
@@ -297,10 +303,10 @@ p_map.add_tools(HoverTool(renderers=[cable_renderer], tooltips=[
     ("Segment Cost", "$@cost{0,0} USD")
 ]))
 
-p_map.scatter('x', 'y', size=15, marker="square", color="#f97316", line_color="#c2410c", source=sub_source, legend_label="Substation")
+sub_renderer = p_map.scatter('x', 'y', size=15, marker="square", color="#f97316", line_color="#c2410c", source=sub_source, legend_label="Substation")
 
 turb_renderer = p_map.scatter('x', 'y', size=10, marker="circle", color="#1e293b", line_color="white", source=turb_source, legend_label="Wind Turbine")
-draw_tool = PointDrawTool(renderers=[turb_renderer], add=False)
+draw_tool = PointDrawTool(renderers=[turb_renderer, sub_renderer], add=False)
 p_map.add_tools(draw_tool)
 p_map.toolbar.active_drag = draw_tool
 

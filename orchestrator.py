@@ -136,16 +136,21 @@ if __name__ == "__main__":
     turb_atrbt_data = getTurbAtrbtYAML(turb_yaml)
     boundary = SiteBoundary.from_geojson(geojson_path)
     
-    # NEW: Process 'from_geojson' substation mode
-    if config.get("substation") == "from_geojson":
-        if boundary.substation_pos is None:
-            raise ValueError("Config indicates substation='from_geojson', but no Point (marker) was found in the GeoJSON file.")
+    # Smart Substation Auto-detect
+    if boundary.substation_pos is not None:
         config["substation"] = {
             "mode": "fixed",
             "fixed_pos": boundary.substation_pos
         }
+    else:
+        if "substation" not in config or config.get("substation") in ["optimize", "from_geojson"]:
+            config["substation"] = "optimize"
     
-    wind_config = config.get("windrose_yaml", "config/iea37-windrose.yaml")
+    wind_config = config.get("windrose_yaml")
+    if not wind_config:
+        print("\n[ERROR] Wind configuration not found! Please define 'windrose_yaml' in your case configuration file (e.g., 'auto' or a path to a YAML file).\n")
+        sys.exit(1)
+        
     if wind_config == "auto":
         from core.wind_rose import get_automatic_wind_rose
         from core.plot import plot_wind_rose
@@ -188,8 +193,17 @@ if __name__ == "__main__":
         plot_path = os.path.join(args.output, "auto_wind_rose.png")
         plot_wind_rose(wind_dir, wind_freq, wind_speed, plot_path)
     else:
+        from core.plot import plot_wind_rose
         wind_yaml = os.path.join(ROOT, wind_config)
         wind_rose_data = getWindRoseYAML(wind_yaml)
+        wind_dir, wind_freq, wind_speed = wind_rose_data
+        
+        # Save wind data as NPZ for the interactive editor to load instantly
+        np.savez(os.path.join(args.output, "wind_data.npz"), wind_dir=wind_dir, wind_freq=wind_freq, wind_speed=wind_speed)
+
+        # Save plot
+        plot_path = os.path.join(args.output, "auto_wind_rose.png")
+        plot_wind_rose(wind_dir, wind_freq, wind_speed, plot_path)
     
     # ── 1. Run Phase 1 ──────────────────────────────────────────────────────────
     banner("Executing PHASE 1: Layout Optimization")

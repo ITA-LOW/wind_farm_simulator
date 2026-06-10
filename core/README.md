@@ -65,7 +65,7 @@ $$
 
 The core evolutionary logic running the layout and co-design optimizations using DEAP.
 
-- **`phase_1.py` (Layout):** Uses a standard Genetic Algorithm (GA) to maximize gross AEP. It automatically calculates a perfect grid spacing to generate a homogenously spread initial generation inside the GeoJSON boundary, preventing destructive crossover (`cxBlend`) effects.
+- **`phase_1.py` (Layout):** Uses a Genetic Algorithm (GA) to maximize gross AEP. It incorporates **Elitism** (preserving the best individual from the Hall of Fame into the next generation by replacing the worst offspring) and ensures strict monotonic convergence tracking. It automatically calculates a perfect grid spacing to generate a homogenously spread initial generation inside the GeoJSON boundary, preventing destructive crossover (`cxBlend`) effects.
 - **`phase_2.py` (Co-design):** Uses NSGA-II to perform multi-objective optimization (Net AEP vs. CAPEX), simultaneously optimizing the placement of the substation, routing of cables, and micro-siting of turbines.
 
 ---
@@ -88,5 +88,5 @@ Helper functions for publication-quality figures:
 The interactive graphical user interface built with **Bokeh Server**. It launches automatically at the end of the `orchestrator.py` optimization loop.
 - **Instant Loading**: Directly consumes cached `wind_data.npz` and Pareto solutions without re-fetching API data.
 - **Side-by-Side Co-design**: Visualises the Pareto front alongside a fully interactive Web Mercator map.
-- **Drag-and-Drop Editor**: Users can manually drag turbines on the map to interactively explore micro-siting variants.
-- **Real-Time Physics**: As you drag a turbine, the dashboard immediately projects coordinates, re-evaluates the AEP (wake model), and re-routes the SAP cabling (CAPEX and losses), instantly updating the dashboard metrics.
+- **Drag-and-Drop Editor**: Users can manually drag turbines and the electrical substation on the map to interactively explore micro-siting variants.
+- **Real-Time Physics**: As you drag a turbine or the substation, the dashboard immediately projects coordinates, re-evaluates the AEP (wake model), and re-routes the SAP cabling (CAPEX and Joule losses), instantly updating the dashboard metrics.

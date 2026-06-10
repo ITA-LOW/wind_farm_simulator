@@ -131,6 +131,11 @@ class SiteBoundary:
         boundary = cls(polygon_m, lon0, lat0)
         
         if points:
+            if len(points) > 1:
+                raise ValueError(
+                    "Multiple Point geometries found in the GeoJSON. "
+                    "The simulator currently supports only one substation."
+                )
             # Transform the first point found in the GeoJSON
             pt_lon, pt_lat = points[0].x, points[0].y
             pt_x, pt_y = transformer.transform(pt_lon, pt_lat)

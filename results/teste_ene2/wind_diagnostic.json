@@ -1,0 +1,12 @@
+{
+    "site_latitude": -2.6499419308142063,
+    "site_longitude": -40.989710185293674,
+    "hub_height_m": 85.0,
+    "mean_wind_speed_ms": 8.900354843333536,
+    "hours_evaluated": 17544,
+    "time_below_cut_in_percent": 3.556771545827633,
+    "time_in_cubic_region_percent": 57.23324213406292,
+    "time_at_rated_power_percent": 39.209986320109444,
+    "time_above_cut_out_percent": 0.0,
+    "recommendation": "Turbine is reasonably well-matched for this site."
+}

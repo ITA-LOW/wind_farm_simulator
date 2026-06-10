@@ -1,0 +1,12 @@
+{
+    "site_latitude": -29.026801517438937,
+    "site_longitude": -49.396170995255446,
+    "hub_height_m": 85.0,
+    "mean_wind_speed_ms": 4.917189064626983,
+    "hours_evaluated": 17544,
+    "time_below_cut_in_percent": 43.393752849977204,
+    "time_in_cubic_region_percent": 50.364797081623344,
+    "time_at_rated_power_percent": 6.241450068399453,
+    "time_above_cut_out_percent": 0.0,
+    "recommendation": "Wind is frequently below cut-in. Consider a Low Wind Speed Turbine with lower cut-in speed."
+}
